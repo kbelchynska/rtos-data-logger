@@ -25,18 +25,18 @@ static const char *TAG = "MANAGER";
 // Пишемо записи один за одним, хвіст лишається 0xFF (як стерта flash).
 static uint8_t s_buf[FLASH_SECTOR_SIZE];
 static uint16_t s_buf_count;
-static bool s_buf_busy;       // буфер віддано Flash Writer, поки не відповість, не чіпаємо
+static bool s_buf_busy; // буфер віддано Flash Writer, поки не відповість, не чіпаємо
 
 static bool s_logging_on = true;
 static bool s_full;
 static bool s_flash_ready;
 static uint16_t s_sectors_used, s_sectors_total;
-static uint32_t s_since_log_s = LOG_INTERVAL_S;   // перший запис одразу після старту
+static uint32_t s_since_log_s = LOG_INTERVAL_S; // перший запис одразу після старту
 
 static sensor_sample_t s_last;
 static uint32_t s_wakeups, s_records_total;
 static char s_msg[22];
-static int s_msg_ttl;          // скільки секунд ще показувати s_msg
+static int s_msg_ttl; // скільки секунд ще показувати s_msg
 
 static void set_msg(const char *m)
 {
@@ -67,7 +67,8 @@ static void announce_full(void)
 
 static void append_record(const log_record_t *rec)
 {
-    if (s_buf_busy) {
+    if (s_buf_busy)
+    {
         ESP_LOGW(TAG, "Buffer is being written, record skipped");
         return;
     }
@@ -75,7 +76,8 @@ static void append_record(const log_record_t *rec)
     s_buf_count++;
     s_records_total++;
     ESP_LOGI(TAG, "Record %u/%u buffered", s_buf_count, (unsigned)RECORDS_PER_SECTOR);
-    if (s_buf_count >= RECORDS_PER_SECTOR) request_write();   // пишемо лише повний буфер
+    if (s_buf_count >= RECORDS_PER_SECTOR)
+        request_write(); // пишемо лише повний буфер
 }
 
 static void print_status(void)
@@ -83,7 +85,7 @@ static void print_status(void)
     time_t ts = s_last.rec.timestamp;
     struct tm t;
     gmtime_r(&ts, &t);
-    printf("\n--- status ---\n");
+    printf("\n- status -\n");
     printf("time      : %04d-%02d-%02d %02d:%02d:%02d UTC%s\n", t.tm_year + 1900, t.tm_mon + 1, t.tm_mday,
            t.tm_hour, t.tm_min, t.tm_sec, s_last.rtc_ok ? "" : " (RTC ERROR)");
     printf("sensor    : %.2f C, %.2f %%, %u mmHg%s\n", s_last.rec.temp_c_x100 / 100.0,
@@ -96,7 +98,7 @@ static void print_status(void)
            (unsigned)(s_sectors_total * RECORDS_PER_SECTOR), LOG_DEMO_MODE ? " [DEMO MODE]" : "");
     printf("records   : %lu logged since boot, %lu wakeups\n", (unsigned long)s_records_total,
            (unsigned long)s_wakeups);
-    printf("--------------\n\n");
+    printf("\n\n");
 }
 
 static void print_help(void)
@@ -114,7 +116,8 @@ static void print_help(void)
 static void set_time(const char *arg)
 {
     struct tm t = {0};
-    if (sscanf(arg, "%d-%d-%d %d:%d:%d", &t.tm_year, &t.tm_mon, &t.tm_mday, &t.tm_hour, &t.tm_min, &t.tm_sec) != 6) {
+    if (sscanf(arg, "%d-%d-%d %d:%d:%d", &t.tm_year, &t.tm_mon, &t.tm_mday, &t.tm_hour, &t.tm_min, &t.tm_sec) != 6)
+    {
         printf("Format: time 2026-11-09 14:30:00\n");
         return;
     }
@@ -131,11 +134,20 @@ static void set_time(const char *arg)
 
 static void handle_command(const command_t *c)
 {
-    switch (c->type) {
-    case CMD_HELP:   print_help(); break;
-    case CMD_STATUS: print_status(); break;
+    switch (c->type)
+    {
+    case CMD_HELP:
+        print_help();
+        break;
+    case CMD_STATUS:
+        print_status();
+        break;
     case CMD_LOG_ON:
-        if (s_full) { printf("Partition is full, run 'erase' first\n"); break; }
+        if (s_full)
+        {
+            printf("Partition is full, run 'erase' first\n");
+            break;
+        }
         s_logging_on = true;
         printf("Logging ON\n");
         set_msg("LOG ON");
@@ -146,18 +158,26 @@ static void handle_command(const command_t *c)
         set_msg("LOG OFF");
         break;
     case CMD_FLUSH:
-        if (s_buf_busy)            printf("Write already in progress\n");
-        else if (s_buf_count == 0) printf("Buffer is empty, nothing to flush\n");
-        else if (s_full)           printf("Partition is full\n");
-        else {
+        if (s_buf_busy)
+            printf("Write already in progress\n");
+        else if (s_buf_count == 0)
+            printf("Buffer is empty, nothing to flush\n");
+        else if (s_full)
+            printf("Partition is full\n");
+        else
+        {
             printf("Flushing %u records (rest of sector stays empty)\n", s_buf_count);
             request_write();
         }
         break;
     case CMD_ERASE:
-        if (s_buf_busy) { printf("Write in progress, try again\n"); break; }
+        if (s_buf_busy)
+        {
+            printf("Write in progress, try again\n");
+            break;
+        }
         buf_clear();
-        s_buf_busy = true;   // поки стираємо, у буфер не пишемо
+        s_buf_busy = true; // поки стираємо, у буфер не пишемо
         xQueueSend(g_flash_queue, &(flash_request_t){.type = FLASH_REQ_ERASE}, portMAX_DELAY);
         break;
     case CMD_DUMP:
@@ -174,17 +194,31 @@ static void handle_flash_result(const flash_result_t *r)
     s_sectors_used = r->sectors_used;
     s_sectors_total = r->sectors_total;
 
-    switch (r->type) {
+    switch (r->type)
+    {
     case FLASH_RES_INIT:
         s_flash_ready = r->ok;
-        if (!r->ok) { s_logging_on = false; printf("Log partition missing, logging disabled\n"); }
-        else if (r->full) announce_full();
+        if (!r->ok)
+        {
+            s_logging_on = false;
+            printf("Log partition missing, logging disabled\n");
+        }
+        else if (r->full)
+            announce_full();
         break;
     case FLASH_RES_WRITE:
         s_buf_busy = false;
-        if (r->ok) { buf_clear(); set_msg("SECTOR SAVED"); }
-        else       { printf("Flash write failed, records kept in RAM\n"); }
-        if (r->full) announce_full();
+        if (r->ok)
+        {
+            buf_clear();
+            set_msg("SECTOR SAVED");
+        }
+        else
+        {
+            printf("Flash write failed, records kept in RAM\n");
+        }
+        if (r->full)
+            announce_full();
         break;
     case FLASH_RES_ERASE:
         s_buf_busy = false;
@@ -200,17 +234,21 @@ static void handle_flash_result(const flash_result_t *r)
 // Коли можна засинати: Flash Writer нічого не робить і людина не друкує в UART
 static bool may_sleep(void)
 {
-    if (g_flash_busy || uxQueueMessagesWaiting(g_flash_queue) > 0) return false;
-    if (esp_timer_get_time() - g_last_uart_activity_us < UART_AWAKE_WINDOW_S * 1000000LL) return false;
+    if (g_flash_busy || uxQueueMessagesWaiting(g_flash_queue) > 0)
+        return false;
+    if (esp_timer_get_time() - g_last_uart_activity_us < UART_AWAKE_WINDOW_S * 1000000LL)
+        return false;
     return true;
 }
 
 static void sleep_until(int64_t wake_at_us)
 {
     int64_t left = wake_at_us - esp_timer_get_time();
-    if (left <= 0) return;
+    if (left <= 0)
+        return;
 
-    if (!may_sleep()) {
+    if (!may_sleep())
+    {
         vTaskDelay(pdMS_TO_TICKS(left / 1000));
         return;
     }
@@ -222,8 +260,9 @@ static void sleep_until(int64_t wake_at_us)
     esp_sleep_enable_timer_wakeup(left);
     esp_light_sleep_start();
 
-    if (esp_sleep_get_wakeup_causes() & BIT(ESP_SLEEP_WAKEUP_UART)) {
-        g_last_uart_activity_us = esp_timer_get_time();   // далі не спимо, поки людина друкує
+    if (esp_sleep_get_wakeup_causes() & BIT(ESP_SLEEP_WAKEUP_UART))
+    {
+        g_last_uart_activity_us = esp_timer_get_time(); // далі не спимо, поки людина друкує
         printf("\n[woken by UART: awake for %d s, type a command]\n> ", UART_AWAKE_WINDOW_S);
         fflush(stdout);
     }
@@ -234,28 +273,37 @@ void manager_task(void *arg)
     buf_clear();
     print_help();
 
-    while (1) {
+    while (1)
+    {
         int64_t cycle_start = esp_timer_get_time();
         s_wakeups++;
 
         // 1. Сенсори
         xTaskNotifyGive(g_sensor_task);
         sensor_sample_t sample;
-        if (xQueueReceive(g_sensor_queue, &sample, pdMS_TO_TICKS(500)) == pdTRUE) s_last = sample;
+        if (xQueueReceive(g_sensor_queue, &sample, pdMS_TO_TICKS(500)) == pdTRUE)
+            s_last = sample;
 
         // 2. Команди та відповіді Flash Writer (без очікування)
         command_t cmd;
-        while (xQueueReceive(g_command_queue, &cmd, 0) == pdTRUE) handle_command(&cmd);
+        while (xQueueReceive(g_command_queue, &cmd, 0) == pdTRUE)
+            handle_command(&cmd);
         flash_result_t fr;
-        while (xQueueReceive(g_flash_result_queue, &fr, 0) == pdTRUE) handle_flash_result(&fr);
+        while (xQueueReceive(g_flash_result_queue, &fr, 0) == pdTRUE)
+            handle_flash_result(&fr);
 
         // 3. Логування раз на LOG_INTERVAL_S
-        if (s_since_log_s < LOG_INTERVAL_S) s_since_log_s++;
-        if (s_logging_on && s_flash_ready && !s_full && s_since_log_s >= LOG_INTERVAL_S) {
-            if (s_last.rtc_ok && s_last.bme_ok) {
+        if (s_since_log_s < LOG_INTERVAL_S)
+            s_since_log_s++;
+        if (s_logging_on && s_flash_ready && !s_full && s_since_log_s >= LOG_INTERVAL_S)
+        {
+            if (s_last.rtc_ok && s_last.bme_ok)
+            {
                 append_record(&s_last.rec);
                 s_since_log_s = 0;
-            } else {
+            }
+            else
+            {
                 ESP_LOGW(TAG, "Sensor error, record skipped");
             }
         }
@@ -272,7 +320,11 @@ void manager_task(void *arg)
             .sectors_total = s_sectors_total,
             .next_log_in_s = LOG_INTERVAL_S - s_since_log_s,
         };
-        if (s_msg_ttl > 0) { strlcpy(snap.message, s_msg, sizeof(snap.message)); s_msg_ttl--; }
+        if (s_msg_ttl > 0)
+        {
+            strlcpy(snap.message, s_msg, sizeof(snap.message));
+            s_msg_ttl;
+        }
         xQueueOverwrite(g_display_queue, &snap);
         // Не засинати посеред передачі кадру по I2C
         xSemaphoreTake(g_display_done, pdMS_TO_TICKS(300));

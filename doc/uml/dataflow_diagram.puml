@@ -20,26 +20,26 @@ queue "flash_queue" as FQ
 database "RAM buffer\n1 sector" as RB
 database "Flash partition" as FP
 
-User --> Uart : UART commands
+User > Uart : UART commands
 
-Sensor --> SQ : log_record_t
-Uart --> CQ : uart_command_t
+Sensor > SQ : log_record_t
+Uart > CQ : uart_command_t
 
-SQ --> Manager : sensor samples
-CQ --> Manager : parsed commands
+SQ > Manager : sensor samples
+CQ > Manager : parsed commands
 
-Manager --> DQ : display_snapshot_t
-DQ --> Display : latest values/status
+Manager > DQ : display_snapshot_t
+DQ > Display : latest values/status
 
-Manager --> RB : append record\nonly every LOG_INTERVAL_MINUTES
-RB --> Manager : block full
+Manager > RB : append record\nonly every LOG_INTERVAL_MINUTES
+RB > Manager : block full
 
-Manager --> FQ : flash_block_t
-FQ --> Flash : block to store
-Flash --> FP : erase sector\nwrite sector
+Manager > FQ : flash_block_t
+FQ > Flash : block to store
+Flash > FP : erase sector\nwrite sector
 
-Flash --> Manager : result/status
-Manager --> DQ : "logging stopped"\nif partition full
-Manager --> Uart : print status/errors
+Flash > Manager : result/status
+Manager > DQ : "logging stopped"\nif partition full
+Manager > Uart : print status/errors
 
 @enduml

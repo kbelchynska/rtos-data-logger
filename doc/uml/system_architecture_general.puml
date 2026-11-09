@@ -31,31 +31,31 @@ package "RTOS Objects" {
   collections "I2C Mutex" as i2c_mutex
 }
 
-[Sensor Task] --> [BME280] : read measurements
-[Sensor Task] --> [DS1306 RTC] : read timestamp
+[Sensor Task] > [BME280] : read measurements
+[Sensor Task] > [DS1306 RTC] : read timestamp
 [Sensor Task] ..> i2c_mutex : lock/unlock if shared bus
 [Display Task] ..> i2c_mutex : lock/unlock
-[Display Task] --> [SSD1306 OLED] : update screen
+[Display Task] > [SSD1306 OLED] : update screen
 
-[UART Task] --> [UART Terminal] : RX/TX commands
+[UART Task] > [UART Terminal] : RX/TX commands
 
-[Sensor Task] --> sensor_queue : log_record_t
-[UART Task] --> command_queue : uart_command_t
+[Sensor Task] > sensor_queue : log_record_t
+[UART Task] > command_queue : uart_command_t
 
-[Manager Task] --> sensor_queue : receive
-[Manager Task] --> command_queue : receive
-[Manager Task] --> display_queue : send display snapshot
-[Manager Task] --> ram_buffer : append log record\nwhen logging time elapsed
-[Manager Task] --> flash_queue : send full sector block
+[Manager Task] > sensor_queue : receive
+[Manager Task] > command_queue : receive
+[Manager Task] > display_queue : send display snapshot
+[Manager Task] > ram_buffer : append log record\nwhen logging time elapsed
+[Manager Task] > flash_queue : send full sector block
 
-[Display Task] --> display_queue : receive
-[Flash Writer Task] --> flash_queue : receive
-[Flash Writer Task] --> [Internal Flash Partition] : erase + write sector
+[Display Task] > display_queue : receive
+[Flash Writer Task] > flash_queue : receive
+[Flash Writer Task] > [Internal Flash Partition] : erase + write sector
 
-[Manager Task] --> [ESP32-S3] : enter light sleep 1s
-[ESP32-S3] --> [Manager Task] : wake up
+[Manager Task] > [ESP32-S3] : enter light sleep 1s
+[ESP32-S3] > [Manager Task] : wake up
 
-[Flash Writer Task] --> [UART Terminal] : "Partition full"
-[Display Task] --> [SSD1306 OLED] : show "Log Full"
+[Flash Writer Task] > [UART Terminal] : "Partition full"
+[Display Task] > [SSD1306 OLED] : show "Log Full"
 
 @enduml

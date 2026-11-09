@@ -47,7 +47,7 @@ class system_status_t {
   +uint32_t write_offset
 }
 
-flash_block_t *-- log_record_t
+flash_block_t * log_record_t
 display_snapshot_t ..> log_record_t
 system_status_t ..> flash_block_t
 uart_command_t ..> system_status_t

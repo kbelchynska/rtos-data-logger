@@ -13,34 +13,34 @@ ESP32-S3 + FreeRTOS. Пристрій прокидається щосекунд�
 
 ## Відповідність завданню
 
-| Вимога | Де |
-|---|---|
-| Sensor Task: BME280 + DS1307 | `task_sensor.c` |
-| UART Task: прийом команд | `task_uart.c` |
-| Display Task | `task_display.c` |
-| Manager Task: логіка + sleep | `task_manager.c` |
-| Flash Writer Task | `task_flash.c` + `log_storage.c` |
-| Queue між задачами | 5 черг, `rtos_objects.c` |
-| Mutex для I2C | `g_i2c_mutex`: Sensor, Display і команда `time` беруть його навколо роботи з шиною |
-| Пробудження щосекунди, Light Sleep | `sleep_until()` у `task_manager.c` |
-| Запис раз на N хвилин через `#define` | `LOG_INTERVAL_MIN` в `app_config.h` |
-| Бінарний формат | `log_record_t`, 10 байт |
-| Окремий partition `logdata` | `partitions.csv`, 256 КБ = 64 сектори |
-| Один RAM-буфер = 1 сектор | `s_buf[4096]` у `task_manager.c` |
-| Писати лише повний буфер | `append_record()` → `request_write()` при 409/409 |
-| Без wear leveling і без метаданих | `esp_partition_erase_range` + `esp_partition_write`, позиція шукається скануванням |
-| Partition заповнився → стоп + UART + дисплей | `announce_full()` + банер `! LOG FULL !` |
-| Команди `status`, `log on`, `log off`, `flush` | `task_uart.c` → `handle_command()` |
-| *Опційно:* `erase`, читання логів (`dump`), модулі, кращий дисплей | є все |
+| Вимога                                                             | Де                                                                                 |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| Sensor Task: BME280 + DS1307                                       | `task_sensor.c`                                                                    |
+| UART Task: прийом команд                                           | `task_uart.c`                                                                      |
+| Display Task                                                       | `task_display.c`                                                                   |
+| Manager Task: логіка + sleep                                       | `task_manager.c`                                                                   |
+| Flash Writer Task                                                  | `task_flash.c` + `log_storage.c`                                                   |
+| Queue між задачами                                                 | 5 черг, `rtos_objects.c`                                                           |
+| Mutex для I2C                                                      | `g_i2c_mutex`: Sensor, Display і команда `time` беруть його навколо роботи з шиною |
+| Пробудження щосекунди, Light Sleep                                 | `sleep_until()` у `task_manager.c`                                                 |
+| Запис раз на N хвилин через `#define`                              | `LOG_INTERVAL_MIN` в `app_config.h`                                                |
+| Бінарний формат                                                    | `log_record_t`, 10 байт                                                            |
+| Окремий partition `logdata`                                        | `partitions.csv`, 256 КБ = 64 сектори                                              |
+| Один RAM-буфер = 1 сектор                                          | `s_buf[4096]` у `task_manager.c`                                                   |
+| Писати лише повний буфер                                           | `append_record()` → `request_write()` при 409/409                                  |
+| Без wear leveling і без метаданих                                  | `esp_partition_erase_range` + `esp_partition_write`, позиція шукається скануванням |
+| Partition заповнився → стоп + UART + дисплей                       | `announce_full()` + банер `! LOG FULL !`                                           |
+| Команди `status`, `log on`, `log off`, `flush`                     | `task_uart.c` → `handle_command()`                                                 |
+| _Опційно:_ `erase`, читання логів (`dump`), модулі, кращий дисплей | є все                                                                              |
 
 ## Формат запису (10 байт, little-endian, без вирівнювання)
 
-| Зсув | Тип | Поле |
-|---|---|---|
-| 0 | `uint32_t` | timestamp: Unix-час (UTC) з DS1307 |
-| 4 | `int16_t` | температура, °C × 100 (`2345` = 23.45 °C) |
-| 6 | `uint16_t` | вологість, % × 100 (`5678` = 56.78 %) |
-| 8 | `uint16_t` | тиск, мм рт. ст. |
+| Зсув | Тип        | Поле                                      |
+| ---- | ---------- | ----------------------------------------- |
+| 0    | `uint32_t` | timestamp: Unix-час (UTC) з DS1307        |
+| 4    | `int16_t`  | температура, °C × 100 (`2345` = 23.45 °C) |
+| 6    | `uint16_t` | вологість, % × 100 (`5678` = 56.78 %)     |
+| 8    | `uint16_t` | тиск, мм рт. ст.                          |
 
 В один сектор влазить 4096 / 10 = **409** записів. Останні 6 байт сектора лишаються `0xFF`.
 Весь розділ вміщує 64 × 409 = 26 176 записів. При записі раз на хвилину це приблизно 18 діб.
@@ -92,11 +92,11 @@ LOG ON  B12/409  S3/64     ← записів у буфері, використ�
 
 ## Підключення
 
-| Модуль | Адреса | ESP32-S3 |
-|---|---|---|
-| BME280 | 0x76 | SDA = GPIO8, SCL = GPIO9 |
-| DS1307 (Tiny RTC) | 0x68 | та сама шина |
-| SSD1306 128×64 | 0x3C | та сама шина |
+| Модуль            | Адреса | ESP32-S3                 |
+| ----------------- | ------ | ------------------------ |
+| BME280            | 0x76   | SDA = GPIO8, SCL = GPIO9 |
+| DS1307 (Tiny RTC) | 0x68   | та сама шина             |
+| SSD1306 128×64    | 0x3C   | та сама шина             |
 
 Піни й адреси задаються в `src/app_config.h`.
 
@@ -116,19 +116,19 @@ pio run -t upload -t monitor
 
 ## Файли `src/`
 
-| Файл | Що робить |
-|---|---|
-| `main.c` | ініціалізація, створення задач |
-| `app_config.h` | усі `#define`: інтервали, піни, стеки, пріоритети |
-| `app_types.h` | `log_record_t` і повідомлення черг |
-| `rtos_objects.c/h` | черги, м'ютекс, `i2c_lock()`/`i2c_unlock()` |
-| `task_*.c` | п'ять задач |
-| `log_storage.c/h` | робота з розділом: пошук позиції, запис сектора, стирання, dump |
-| `i2c_bus.c`, `bme280.c`, `bme280_compensate.c`, `ds1307.c`, `oled.c`, `u8g2_hal.c` | драйвери |
+| Файл                                                                               | Що робить                                                       |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `main.c`                                                                           | ініціалізація, створення задач                                  |
+| `app_config.h`                                                                     | усі `#define`: інтервали, піни, стеки, пріоритети               |
+| `app_types.h`                                                                      | `log_record_t` і повідомлення черг                              |
+| `rtos_objects.c/h`                                                                 | черги, м'ютекс, `i2c_lock()`/`i2c_unlock()`                     |
+| `task_*.c`                                                                         | п'ять задач                                                     |
+| `log_storage.c/h`                                                                  | робота з розділом: пошук позиції, запис сектора, стирання, dump |
+| `i2c_bus.c`, `bme280.c`, `bme280_compensate.c`, `ds1307.c`, `oled.c`, `u8g2_hal.c` | драйвери                                                        |
 
 Загальний опис ідеї та UML-діаграми від викладача лежать у `doc/`.
 
 ## Демонстрація
 
-<!-- TODO: посилання на відео -->
+<! TODO: посилання на відео >
 _Відео буде додано._
